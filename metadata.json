@@ -1,0 +1,6 @@
+{
+  "name": "Bán Hàng 10 Tỷ",
+  "description": "Ứng dụng quản lý bán hàng, đơn hàng, khách hàng, sản phẩm, chi phí và báo cáo lợi nhuận đồng bộ Supabase",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
