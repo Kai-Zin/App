@@ -35,6 +35,11 @@ class AppPreferences(private val context: Context) {
         val USER_ID = stringPreferencesKey("sb_user_id")
         val USER_EMAIL = stringPreferencesKey("sb_user_email")
         val LAST_OK = longPreferencesKey("sb_last_ok")
+        val UI_SCALE = androidx.datastore.preferences.core.floatPreferencesKey("ui_scale")
+    }
+
+    val uiScaleFlow: Flow<Float> = context.dataStore.data.map { prefs ->
+        (prefs[Keys.UI_SCALE] ?: 0.90f).coerceIn(0.75f, 1.25f)
     }
 
     val cloudSessionFlow: Flow<CloudSessionPrefs> = context.dataStore.data.map { prefs ->
@@ -50,6 +55,12 @@ class AppPreferences(private val context: Context) {
     }
 
     suspend fun currentCloudSession(): CloudSessionPrefs = cloudSessionFlow.first()
+
+    suspend fun saveUiScale(scale: Float) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.UI_SCALE] = scale.coerceIn(0.75f, 1.25f)
+        }
+    }
 
     suspend fun saveConfig(url: String, key: String) {
         context.dataStore.edit { prefs ->

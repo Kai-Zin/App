@@ -1,10 +1,10 @@
 package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,29 +21,31 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonOutline
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -70,13 +72,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.data.model.Customer
+import com.example.data.model.CustomerFilter
+import com.example.data.model.Order
 import com.example.data.model.OrderLine
 import com.example.data.model.Product
+import com.example.domain.SalesAnalytics
 import com.example.ui.SalesUiState
 import com.example.ui.components.DatePickerField
 import com.example.ui.components.EmptyPlaceholder
 import com.example.ui.components.MoneyInputField
 import com.example.ui.components.ProductThumbnail
+import com.example.ui.components.StatusTag
 import com.example.ui.components.SummaryStatRow
 import com.example.ui.theme.BrandBlue
 import com.example.ui.theme.BrandBlueSoft
@@ -102,14 +108,8 @@ fun CreateOrderScreen(
     var shipFee by remember { mutableLongStateOf(0L) }
 
     var showPicker by remember { mutableStateOf(false) }
+    var showCustomerPicker by remember { mutableStateOf(false) }
     var askDiscard by remember { mutableStateOf(false) }
-    var showInlineNewCustomer by remember { mutableStateOf(false) }
-    var customerDropdownOpen by remember { mutableStateOf(false) }
-
-    var newCustName by remember { mutableStateOf("") }
-    var newCustPhone by remember { mutableStateOf("") }
-    var newCustArea by remember { mutableStateOf("") }
-    var newCustAddress by remember { mutableStateOf("") }
 
     val productMap = remember(uiState.products) { uiState.products.associateBy { it.id } }
     val selectedCustomer = remember(uiState.customers, selectedCustomerId) {
@@ -126,7 +126,7 @@ fun CreateOrderScreen(
         if (lines.isNotEmpty()) askDiscard = true else onClose()
     }
 
-    BackHandler(enabled = !showPicker) {
+    BackHandler(enabled = !showPicker && !showCustomerPicker) {
         attemptClose()
     }
 
@@ -178,7 +178,28 @@ fun CreateOrderScreen(
         return
     }
 
+    if (showCustomerPicker) {
+        CustomerPickerScreen(
+            customers = uiState.customers,
+            orders = uiState.orders,
+            selectedCustomerId = selectedCustomerId,
+            onBack = { showCustomerPicker = false },
+            onSelectCustomer = { id ->
+                selectedCustomerId = id
+                showCustomerPicker = false
+            },
+            onQuickAddCustomer = { name, phone, area, addr ->
+                onQuickAddCustomer(name, phone, area, addr) { saved ->
+                    selectedCustomerId = saved.id
+                    showCustomerPicker = false
+                }
+            }
+        )
+        return
+    }
+
     Scaffold(
+        containerColor = Color.White,
         topBar = {
             TopAppBar(
                 title = { Text("Thêm đơn bán", fontWeight = FontWeight.Bold) },
@@ -210,14 +231,14 @@ fun CreateOrderScreen(
         bottomBar = {
             Surface(
                 shadowElevation = 8.dp,
-                color = MaterialTheme.colorScheme.surface,
+                color = Color.White,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -235,7 +256,7 @@ fun CreateOrderScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(Color.White)
                 .padding(padding),
             contentPadding = PaddingValues(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -244,10 +265,10 @@ fun CreateOrderScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -258,7 +279,7 @@ fun CreateOrderScreen(
                                 onClick = { showPicker = true },
                                 modifier = Modifier.testTag("open_product_picker_button")
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Text(" Thêm")
                             }
                         }
@@ -280,115 +301,78 @@ fun CreateOrderScreen(
                 )
             }
 
+            // Customer full-screen picker trigger card
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
-                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            ExposedDropdownMenuBox(
-                                expanded = customerDropdownOpen,
-                                onExpandedChange = { customerDropdownOpen = it },
-                                modifier = Modifier.weight(1f)
+                            Text("Khách hàng", style = MaterialTheme.typography.titleMedium)
+                            FilledTonalButton(
+                                onClick = { showCustomerPicker = true },
+                                modifier = Modifier.testTag("open_customer_picker_button")
                             ) {
-                                val label = selectedCustomer?.let {
-                                    if (it.area.isNotBlank()) "${it.name} · ${it.area}" else it.name
-                                } ?: "Khách lẻ / chưa lưu"
-                                OutlinedTextField(
-                                    value = label,
-                                    onValueChange = {},
-                                    readOnly = true,
-                                    label = { Text("Khách hàng") },
-                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = customerDropdownOpen) },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                                )
-                                ExposedDropdownMenu(
-                                    expanded = customerDropdownOpen,
-                                    onDismissRequest = { customerDropdownOpen = false }
-                                ) {
-                                    DropdownMenuItem(
-                                        text = { Text("Khách lẻ / chưa lưu") },
-                                        onClick = { selectedCustomerId = ""; customerDropdownOpen = false }
-                                    )
-                                    uiState.customers.forEach { c ->
-                                        DropdownMenuItem(
-                                            text = { Text(if (c.area.isNotBlank()) "${c.name} · ${c.area}" else c.name) },
-                                            onClick = { selectedCustomerId = c.id; customerDropdownOpen = false }
-                                        )
-                                    }
-                                }
-                            }
-                            OutlinedButton(onClick = { showInlineNewCustomer = !showInlineNewCustomer }) {
-                                Text(if (showInlineNewCustomer) "Đóng" else "＋ Thêm")
+                                Text("Chọn khách hàng")
                             }
                         }
 
-                        SummaryStatRow("📞 SĐT", selectedCustomer?.phone?.ifBlank { "Không có" } ?: "Không có")
-                        val addr = listOf(selectedCustomer?.area.orEmpty(), selectedCustomer?.address.orEmpty())
-                            .filter { it.isNotBlank() }.joinToString(" · ")
-                        SummaryStatRow("🏠 Địa chỉ", addr.ifBlank { "Không có" })
-
-                        AnimatedVisibility(visible = showInlineNewCustomer) {
-                            Column(
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showCustomerPicker = true }
+                                .testTag("customer_selector_box")
+                        ) {
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 6.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                OutlinedTextField(
-                                    value = newCustName,
-                                    onValueChange = { newCustName = it },
-                                    label = { Text("Tên khách hàng *") },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                OutlinedTextField(
-                                    value = newCustPhone,
-                                    onValueChange = { newCustPhone = it },
-                                    label = { Text("SĐT") },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                OutlinedTextField(
-                                    value = newCustArea,
-                                    onValueChange = { newCustArea = it },
-                                    label = { Text("Khu vực") },
-                                    placeholder = { Text("Từ Sơn, Bắc Ninh") },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                OutlinedTextField(
-                                    value = newCustAddress,
-                                    onValueChange = { newCustAddress = it },
-                                    label = { Text("Địa chỉ") },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Button(
-                                    onClick = {
-                                        onQuickAddCustomer(newCustName, newCustPhone, newCustArea, newCustAddress) { saved ->
-                                            selectedCustomerId = saved.id
-                                            showInlineNewCustomer = false
-                                            newCustName = ""
-                                            newCustPhone = ""
-                                            newCustArea = ""
-                                            newCustAddress = ""
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(BrandBlueSoft),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Text("Lưu khách hàng")
+                                    Icon(Icons.Default.Person, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(20.dp))
                                 }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = selectedCustomer?.name ?: "Khách lẻ / chưa lưu",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    val phoneTxt = selectedCustomer?.phone?.ifBlank { "Không có" } ?: "Bấm để chọn khách hàng"
+                                    val addrTxt = listOf(selectedCustomer?.area.orEmpty(), selectedCustomer?.address.orEmpty())
+                                        .filter { it.isNotBlank() }.joinToString(" · ")
+                                    Text(
+                                        text = if (selectedCustomer != null) {
+                                            "📞 $phoneTxt" + if (addrTxt.isNotBlank()) " · 🏠 $addrTxt" else ""
+                                        } else phoneTxt,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = "Chọn khách hàng",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
@@ -399,10 +383,10 @@ fun CreateOrderScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
-                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         DatePickerField(
                             label = "Ngày bán",
                             isoDate = orderDate,
@@ -424,10 +408,10 @@ fun CreateOrderScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
-                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         MoneyInputField(
                             label = "Phụ phí (thu thêm)",
                             amount = surcharge,
@@ -438,7 +422,7 @@ fun CreateOrderScreen(
                             amount = shipFee,
                             onAmountChange = { shipFee = it }
                         )
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(2.dp))
                         SummaryStatRow("Số lượng", "${Formatters.qty(qtyTotal)} kg")
                         SummaryStatRow("Tiền hàng", Formatters.money(goodsTotal))
                         SummaryStatRow("Phụ phí", "+ ${Formatters.money(surcharge)}")
@@ -477,6 +461,314 @@ fun CreateOrderScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CustomerPickerScreen(
+    customers: List<Customer>,
+    orders: List<Order>,
+    selectedCustomerId: String,
+    onBack: () -> Unit,
+    onSelectCustomer: (String) -> Unit,
+    onQuickAddCustomer: (String, String, String, String) -> Unit
+) {
+    var query by remember { mutableStateOf("") }
+    var filter by remember { mutableStateOf(CustomerFilter.ALL) }
+    var showQuickAdd by remember { mutableStateOf(false) }
+
+    BackHandler { onBack() }
+
+    val summaries = remember(customers, orders, filter, query) {
+        val q = query.trim().lowercase()
+        SalesAnalytics.buildCustomerCareList(customers, orders)
+            .filter { s ->
+                when (filter) {
+                    CustomerFilter.ALL -> true
+                    CustomerFilter.D15 -> (s.daysSinceLastOrder ?: -1) >= 15
+                    CustomerFilter.D30 -> (s.daysSinceLastOrder ?: -1) >= 30
+                    CustomerFilter.D60 -> (s.daysSinceLastOrder ?: -1) >= 60
+                    CustomerFilter.NEVER -> s.daysSinceLastOrder == null
+                }
+            }
+            .filter { s ->
+                if (q.isEmpty()) true
+                else "${s.customer.name} ${s.customer.phone} ${s.customer.area} ${s.customer.address}".lowercase().contains(q)
+            }
+            .sortedBy { it.customer.name.lowercase() }
+    }
+
+    Scaffold(
+        containerColor = Color.White,
+        topBar = {
+            TopAppBar(
+                title = { Text("Chọn khách hàng", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại")
+                    }
+                },
+                actions = {
+                    Button(
+                        onClick = { showQuickAdd = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = BrandBlue),
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .testTag("picker_add_customer_button")
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Text(" Thêm mới", fontWeight = FontWeight.Bold)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = BrandBlue,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                )
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White)
+                .padding(padding)
+                .padding(horizontal = 14.dp)
+        ) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                placeholder = { Text("Lọc theo tên, SĐT, khu vực, địa chỉ...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                singleLine = true,
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp)
+                    .testTag("customer_picker_search")
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CustomerFilter.entries.forEach { f ->
+                    FilterChip(
+                        selected = filter == f,
+                        onClick = { filter = f },
+                        label = { Text(f.label) }
+                    )
+                }
+            }
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item {
+                    val isGuestSelected = selectedCustomerId.isBlank()
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isGuestSelected) BrandBlueSoft else Color.White,
+                        border = BorderStroke(1.dp, if (isGuestSelected) BrandBlue else MaterialTheme.colorScheme.outline),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelectCustomer("") }
+                            .testTag("pick_guest_customer")
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(BrandBlueSoft),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.PersonOutline, contentDescription = null, tint = BrandBlue)
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Khách lẻ / chưa lưu",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Bán nhanh không gắn hồ sơ khách hàng",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            if (isGuestSelected) {
+                                Icon(Icons.Default.Check, contentDescription = "Đang chọn", tint = BrandBlue)
+                            }
+                        }
+                    }
+                }
+
+                if (summaries.isEmpty()) {
+                    item {
+                        EmptyPlaceholder("Không tìm thấy khách hàng phù hợp.")
+                    }
+                } else {
+                    items(summaries, key = { it.customer.id }) { s ->
+                        val c = s.customer
+                        val isSelected = c.id == selectedCustomerId
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) BrandBlueSoft else Color.White,
+                            border = BorderStroke(1.dp, if (isSelected) BrandBlue else MaterialTheme.colorScheme.outline),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelectCustomer(c.id) }
+                                .testTag("pick_customer_${c.id}")
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(if (isSelected) BrandBlue else BrandBlueSoft),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = if (isSelected) Icons.Default.Check else Icons.Default.Person,
+                                        contentDescription = null,
+                                        tint = if (isSelected) Color.White else BrandBlue
+                                    )
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = c.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = "📞 ${c.phone.ifBlank { "Không có" }}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    val loc = listOf(c.area, c.address).filter { it.isNotBlank() }.joinToString(" · ")
+                                    Text(
+                                        text = "🏠 ${loc.ifBlank { "Không có" }}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Row(
+                                        modifier = Modifier.padding(top = 4.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "${s.orders.size} đơn · ${Formatters.money(s.totalSpent)}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        when {
+                                            s.daysSinceLastOrder == null -> StatusTag("Chưa có đơn", isWarning = true)
+                                            s.daysSinceLastOrder >= 30 -> StatusTag("${s.daysSinceLastOrder} ngày chưa nhập", isWarning = true)
+                                            else -> Text(
+                                                text = "${s.daysSinceLastOrder} ngày trước",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showQuickAdd) {
+        var newName by remember { mutableStateOf("") }
+        var newPhone by remember { mutableStateOf("") }
+        var newArea by remember { mutableStateOf("") }
+        var newAddress by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showQuickAdd = false },
+            title = { Text("Thêm khách hàng mới") },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = newName,
+                        onValueChange = { newName = it },
+                        label = { Text("Tên khách hàng *") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = newPhone,
+                        onValueChange = { newPhone = it },
+                        label = { Text("Số điện thoại") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = newArea,
+                        onValueChange = { newArea = it },
+                        label = { Text("Khu vực / tỉnh thành") },
+                        placeholder = { Text("Từ Sơn, Bắc Ninh") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = newAddress,
+                        onValueChange = { newAddress = it },
+                        label = { Text("Địa chỉ chi tiết") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (newName.trim().isNotEmpty()) {
+                            onQuickAddCustomer(newName, newPhone, newArea, newAddress)
+                            showQuickAdd = false
+                        }
+                    }
+                ) {
+                    Text("Lưu & chọn")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showQuickAdd = false }) { Text("Hủy") }
+            }
+        )
+    }
+}
+
 @Composable
 private fun OrderLineCard(
     index: Int,
@@ -493,19 +785,19 @@ private fun OrderLineCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(10.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.Top
         ) {
-            ProductThumbnail(imageDataUri = productImage, size = 56.dp)
+            ProductThumbnail(imageDataUri = productImage, size = 50.dp)
 
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -527,7 +819,7 @@ private fun OrderLineCard(
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    IconButton(onClick = onRemove, modifier = Modifier.size(36.dp)) {
+                    IconButton(onClick = onRemove, modifier = Modifier.size(34.dp)) {
                         Icon(Icons.Default.Close, contentDescription = "Xóa dòng", tint = LossRed)
                     }
                 }
@@ -543,7 +835,7 @@ private fun OrderLineCard(
                             onUpdate(line.copy(qty = safe))
                         },
                         contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(36.dp)
                     ) {
                         Text("−", style = MaterialTheme.typography.titleMedium)
                     }
@@ -560,7 +852,7 @@ private fun OrderLineCard(
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
-                        modifier = Modifier.width(76.dp)
+                        modifier = Modifier.width(68.dp)
                     )
 
                     OutlinedButton(
@@ -569,7 +861,7 @@ private fun OrderLineCard(
                             onUpdate(line.copy(qty = next))
                         },
                         contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(36.dp)
                     ) {
                         Text("+", style = MaterialTheme.typography.titleMedium)
                     }
@@ -629,6 +921,7 @@ fun ProductPickerScreen(
     }
 
     Scaffold(
+        containerColor = Color.White,
         topBar = {
             TopAppBar(
                 title = { Text("Chọn hàng hóa", fontWeight = FontWeight.Bold) },
@@ -645,7 +938,7 @@ fun ProductPickerScreen(
             )
         },
         bottomBar = {
-            Surface(shadowElevation = 8.dp, color = MaterialTheme.colorScheme.surface) {
+            Surface(shadowElevation = 8.dp, color = Color.White) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -672,6 +965,7 @@ fun ProductPickerScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(Color.White)
                 .padding(padding)
         ) {
             OutlinedTextField(
@@ -693,7 +987,7 @@ fun ProductPickerScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(if (isChecked) BrandBlueSoft else MaterialTheme.colorScheme.surface)
+                                .background(if (isChecked) BrandBlueSoft else Color.White)
                                 .clickable {
                                     if (isChecked) selected.remove(p.id) else selected.add(p.id)
                                 }
@@ -702,11 +996,11 @@ fun ProductPickerScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                ProductThumbnail(imageDataUri = p.image, size = 56.dp)
+                                ProductThumbnail(imageDataUri = p.image, size = 50.dp)
                                 if (isChecked) {
                                     Box(
                                         modifier = Modifier
-                                            .size(56.dp)
+                                            .size(50.dp)
                                             .clip(RoundedCornerShape(12.dp))
                                             .background(BrandBlue.copy(alpha = 0.8f)),
                                         contentAlignment = Alignment.Center
@@ -715,7 +1009,7 @@ fun ProductPickerScreen(
                                             imageVector = Icons.Default.Check,
                                             contentDescription = "Đã chọn",
                                             tint = Color.White,
-                                            modifier = Modifier.size(28.dp)
+                                            modifier = Modifier.size(26.dp)
                                         )
                                     }
                                 }

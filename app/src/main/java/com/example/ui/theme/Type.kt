@@ -22,65 +22,70 @@ val JetBrainsMono = FontFamily(
     Font(R.font.jetbrains_mono, FontWeight.Bold)
 )
 
-val Typography = Typography(
-    headlineMedium = TextStyle(
-        fontFamily = BeVietnamPro,
-        fontWeight = FontWeight.Bold,
-        fontSize = 24.sp,
-        lineHeight = 30.sp
-    ),
-    titleLarge = TextStyle(
-        fontFamily = BeVietnamPro,
-        fontWeight = FontWeight.Bold,
-        fontSize = 20.sp,
-        lineHeight = 26.sp
-    ),
-    titleMedium = TextStyle(
-        fontFamily = BeVietnamPro,
-        fontWeight = FontWeight.Bold,
-        fontSize = 16.sp,
-        lineHeight = 22.sp
-    ),
-    titleSmall = TextStyle(
-        fontFamily = BeVietnamPro,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 14.sp,
-        lineHeight = 20.sp
-    ),
-    bodyLarge = TextStyle(
-        fontFamily = BeVietnamPro,
-        fontWeight = FontWeight.Normal,
-        fontSize = 15.sp,
-        lineHeight = 22.sp
-    ),
-    bodyMedium = TextStyle(
-        fontFamily = BeVietnamPro,
-        fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        lineHeight = 20.sp
-    ),
-    bodySmall = TextStyle(
-        fontFamily = BeVietnamPro,
-        fontWeight = FontWeight.Normal,
-        fontSize = 12.sp,
-        lineHeight = 17.sp
-    ),
-    labelLarge = TextStyle(
-        fontFamily = BeVietnamPro,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 14.sp,
-        lineHeight = 20.sp
-    ),
-    labelMedium = TextStyle(
-        fontFamily = BeVietnamPro,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 12.sp,
-        lineHeight = 16.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = BeVietnamPro,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 14.sp
+fun buildAppTypography(scale: Float = 0.90f): Typography {
+    val s = scale.coerceIn(0.75f, 1.25f)
+    return Typography(
+        headlineMedium = TextStyle(
+            fontFamily = BeVietnamPro,
+            fontWeight = FontWeight.Bold,
+            fontSize = (20f * s).sp,
+            lineHeight = (26f * s).sp
+        ),
+        titleLarge = TextStyle(
+            fontFamily = BeVietnamPro,
+            fontWeight = FontWeight.Bold,
+            fontSize = (17.5f * s).sp,
+            lineHeight = (23f * s).sp
+        ),
+        titleMedium = TextStyle(
+            fontFamily = BeVietnamPro,
+            fontWeight = FontWeight.Bold,
+            fontSize = (14.5f * s).sp,
+            lineHeight = (20f * s).sp
+        ),
+        titleSmall = TextStyle(
+            fontFamily = BeVietnamPro,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = (13.5f * s).sp,
+            lineHeight = (18f * s).sp
+        ),
+        bodyLarge = TextStyle(
+            fontFamily = BeVietnamPro,
+            fontWeight = FontWeight.Normal,
+            fontSize = (13.5f * s).sp,
+            lineHeight = (19f * s).sp
+        ),
+        bodyMedium = TextStyle(
+            fontFamily = BeVietnamPro,
+            fontWeight = FontWeight.Normal,
+            fontSize = (12.5f * s).sp,
+            lineHeight = (17.5f * s).sp
+        ),
+        bodySmall = TextStyle(
+            fontFamily = BeVietnamPro,
+            fontWeight = FontWeight.Normal,
+            fontSize = (11.5f * s).sp,
+            lineHeight = (16f * s).sp
+        ),
+        labelLarge = TextStyle(
+            fontFamily = BeVietnamPro,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = (13f * s).sp,
+            lineHeight = (18f * s).sp
+        ),
+        labelMedium = TextStyle(
+            fontFamily = BeVietnamPro,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = (11.5f * s).sp,
+            lineHeight = (15f * s).sp
+        ),
+        labelSmall = TextStyle(
+            fontFamily = BeVietnamPro,
+            fontWeight = FontWeight.Medium,
+            fontSize = (10.5f * s).sp,
+            lineHeight = (14f * s).sp
+        )
     )
-)
+}
+
+val Typography = buildAppTypography(0.90f)

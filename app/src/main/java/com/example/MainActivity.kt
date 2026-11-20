@@ -5,11 +5,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -17,8 +19,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Assessment
@@ -39,6 +43,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PermanentDrawerSheet
 import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Scaffold
@@ -54,6 +59,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -79,21 +85,24 @@ import com.example.ui.theme.BrandBlueSoft
 import com.example.ui.theme.MyApplicationTheme
 import com.example.util.Formatters
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MyApplicationTheme {
-                SalesAppRoot()
+            val viewModel: SalesViewModel = viewModel()
+            val uiScale by viewModel.uiScale.collectAsStateWithLifecycle()
+            MyApplicationTheme(uiScale = uiScale) {
+                SalesAppRoot(viewModel = viewModel, uiScale = uiScale)
             }
         }
     }
 }
 
 @Composable
-fun SalesAppRoot(viewModel: SalesViewModel = viewModel()) {
+fun SalesAppRoot(viewModel: SalesViewModel, uiScale: Float) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentPage by viewModel.currentPage.collectAsStateWithLifecycle()
     val loadingMessage by viewModel.loadingMessage.collectAsStateWithLifecycle()
@@ -129,25 +138,26 @@ fun SalesAppRoot(viewModel: SalesViewModel = viewModel()) {
         val mainContent: @Composable () -> Unit = {
             Scaffold(
                 snackbarHost = { SnackbarHost(snackbarHostState) },
-                containerColor = MaterialTheme.colorScheme.background,
+                containerColor = Color.White,
                 topBar = {
                     Surface(
-                        color = MaterialTheme.colorScheme.surface,
-                        shadowElevation = 1.dp,
+                        color = Color.White,
+                        shadowElevation = 0.dp,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.statusBarsPadding()) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 if (!isExpandedTablet) {
                                     IconButton(
                                         onClick = { scope.launch { drawerState.open() } },
                                         modifier = Modifier
+                                            .size(40.dp)
                                             .background(BrandBlueSoft, MaterialTheme.shapes.small)
                                             .testTag("open_drawer_button")
                                     ) {
@@ -179,13 +189,13 @@ fun SalesAppRoot(viewModel: SalesViewModel = viewModel()) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
+                        .background(Color.White)
                         .padding(innerPadding)
                 ) {
-                    // Page Sub-header
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+                            .padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
@@ -205,9 +215,10 @@ fun SalesAppRoot(viewModel: SalesViewModel = viewModel()) {
                         if (currentPage == AppPage.DASHBOARD || currentPage == AppPage.ORDERS) {
                             Button(
                                 onClick = { viewModel.openCreateOrder() },
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                                 modifier = Modifier.testTag("quick_add_order_button")
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = null)
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Text(" Tạo đơn hàng")
                             }
                         }
@@ -260,6 +271,8 @@ fun SalesAppRoot(viewModel: SalesViewModel = viewModel()) {
                             )
                             AppPage.SETTINGS -> SettingsScreen(
                                 uiState = uiState,
+                                uiScale = uiScale,
+                                onUiScaleChange = { viewModel.setUiScale(it) },
                                 onSaveConfig = { u, k -> viewModel.saveSupabaseConfig(u, k) },
                                 onSignUp = { e, p -> viewModel.signUp(e, p) },
                                 onSignIn = { e, p -> viewModel.signIn(e, p) },
@@ -279,9 +292,14 @@ fun SalesAppRoot(viewModel: SalesViewModel = viewModel()) {
         if (isExpandedTablet) {
             PermanentNavigationDrawer(
                 drawerContent = {
-                    PermanentDrawerSheet(modifier = Modifier.width(260.dp)) {
+                    PermanentDrawerSheet(
+                        modifier = Modifier.width(248.dp),
+                        drawerContainerColor = Color.White
+                    ) {
                         DrawerMenuBody(
                             currentPage = currentPage,
+                            uiScale = uiScale,
+                            onUiScaleChange = { viewModel.setUiScale(it) },
                             onSelectPage = { viewModel.navigateTo(it) }
                         )
                     }
@@ -292,9 +310,14 @@ fun SalesAppRoot(viewModel: SalesViewModel = viewModel()) {
             ModalNavigationDrawer(
                 drawerState = drawerState,
                 drawerContent = {
-                    ModalDrawerSheet(modifier = Modifier.width(280.dp)) {
+                    ModalDrawerSheet(
+                        modifier = Modifier.width(264.dp),
+                        drawerContainerColor = Color.White
+                    ) {
                         DrawerMenuBody(
                             currentPage = currentPage,
+                            uiScale = uiScale,
+                            onUiScaleChange = { viewModel.setUiScale(it) },
                             onSelectPage = { page ->
                                 viewModel.navigateTo(page)
                                 scope.launch { drawerState.close() }
@@ -342,12 +365,15 @@ fun SalesAppRoot(viewModel: SalesViewModel = viewModel()) {
 @Composable
 private fun DrawerMenuBody(
     currentPage: AppPage,
+    uiScale: Float,
+    onUiScaleChange: (Float) -> Unit,
     onSelectPage: (AppPage) -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxHeight()
-            .padding(horizontal = 12.dp, vertical = 18.dp)
+            .background(Color.White)
+            .padding(horizontal = 12.dp, vertical = 16.dp)
     ) {
         Text(
             text = "🤑 Kiếm được 10 tỷ sẽ nghỉ làm",
@@ -361,7 +387,7 @@ private fun DrawerMenuBody(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
         )
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(10.dp))
 
         AppPage.entries.forEach { p ->
             NavigationDrawerItem(
@@ -383,11 +409,71 @@ private fun DrawerMenuBody(
         }
 
         Spacer(Modifier.weight(1f))
+
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 6.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Cỡ chữ & ô",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "${(uiScale * 100).roundToInt()}%",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandBlue
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedButton(
+                        onClick = { onUiScaleChange((uiScale - 0.05f).coerceAtLeast(0.75f)) },
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier.weight(1f).height(34.dp).testTag("drawer_scale_down")
+                    ) {
+                        Text("A−")
+                    }
+                    OutlinedButton(
+                        onClick = { onUiScaleChange(0.90f) },
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier.weight(1f).height(34.dp).testTag("drawer_scale_reset")
+                    ) {
+                        Text("Mặc định")
+                    }
+                    OutlinedButton(
+                        onClick = { onUiScaleChange((uiScale + 0.05f).coerceAtMost(1.20f)) },
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier.weight(1f).height(34.dp).testTag("drawer_scale_up")
+                    ) {
+                        Text("A+")
+                    }
+                }
+            }
+        }
+
         Text(
             text = "💸 Mục tiêu: 10 tỷ rồi tính tiếp!",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(12.dp)
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
         )
     }
 }

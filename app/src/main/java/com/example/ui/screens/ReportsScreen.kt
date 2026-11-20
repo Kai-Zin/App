@@ -282,6 +282,7 @@ fun ReportsScreen(
                                 OrderListRow(
                                     order = order,
                                     customerName = customerMap[order.customerId]?.name ?: "Khách lẻ",
+                                    allExpenses = uiState.expenses,
                                     onClick = { onOrderClick(order) }
                                 )
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)

@@ -17,14 +17,15 @@ val WarningAmber = Color(0xFFF29B38)
 val WarningAmberText = Color(0xFFB97819)
 val WarningAmberSoft = Color(0xFFFFF2E3)
 
-val SurfaceBg = Color(0xFFF3F6FC)
+val SurfaceBg = Color(0xFFFFFFFF)
 val CardBg = Color(0xFFFFFFFF)
+val SoftSurface = Color(0xFFF8FAFC)
 val InkPrimary = Color(0xFF17243A)
 val InkSecondary = Color(0xFF52627A)
 val MutedText = Color(0xFF7C899D)
-val LineBorder = Color(0xFFE8EDF5)
+val LineBorder = Color(0xFFE5EAF2)
 
-// Dark mode palette
+// Dark mode palette (retained for reference)
 val DarkBg = Color(0xFF0F172A)
 val DarkSurface = Color(0xFF1E293B)
 val DarkSurfaceVariant = Color(0xFF283548)

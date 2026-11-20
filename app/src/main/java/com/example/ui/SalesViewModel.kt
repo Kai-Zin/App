@@ -65,6 +65,13 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         initialValue = SalesUiState()
     )
 
+    val uiScale: StateFlow<Float> = prefs.uiScaleFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 0.90f
+        )
+
     private val _currentPage = MutableStateFlow(AppPage.DASHBOARD)
     val currentPage: StateFlow<AppPage> = _currentPage.asStateFlow()
 
@@ -93,6 +100,12 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.refreshSyncBadge()
             repository.pullFromCloud()
+        }
+    }
+
+    fun setUiScale(scale: Float) {
+        viewModelScope.launch {
+            prefs.saveUiScale(scale)
         }
     }
 
